@@ -1,4 +1,6 @@
 import RaimbowKitAndWagmiProvider from "./RaimbowKitAndWagmiProvider";
+import Footer from "../components/shared/Footer";
+import Header from "../components/shared/Header";
 
 import localFont from "next/font/local";
 import "./globals.css";
@@ -22,11 +24,15 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} >
         <RaimbowKitAndWagmiProvider>
-          {children}
+          <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-grow flex items-center justify-center">
+              {children}
+            </main>
+            <Footer />
+          </div>
         </RaimbowKitAndWagmiProvider>
       </body>
     </html>
