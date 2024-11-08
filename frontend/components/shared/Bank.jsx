@@ -77,22 +77,23 @@ const Bank = () => {
 
     // Withdraw function
     const withdraw = async () => {
-        // try {
-        //     writeContract({
-        //         abi: contractABI,
-        //         address: contractAddress,
-        //         functionName: 'withdraw',
-        //         args: [parseEther(amountToWithdraw)],
-        //     })
-        //     setWithdrawEvent(Date.now())  // Trigger balance update after withdrawal
-        // } catch (error) {
-        //     console.error('Error during withdrawal:', error.message)
-        // }
+        console.log('Withdrawing...', parseEther(amountToWithdraw))
+        try {
+            writeContract({
+                abi: contractABI,
+                address: contractAddress,
+                functionName: 'withdraw',
+                args: [parseEther(amountToWithdraw)],
+            })
+            setWithdrawEvent(Date.now())  // Trigger balance update after withdrawal
+        } catch (error) {
+            console.error('Error during withdrawal:', error.message)
+        }
     }
 
     return (
-        <div className="max-w-4xl mx-auto p-6">
-            <div className="bg-white shadow-md rounded-lg p-6 mb-8">
+        <>
+            <div className="bg-white shadow-md rounded-lg p-6 mb-8 w-full max-w-xl">
                 <h2 className="text-2xl font-semibold mb-4">Your Balance In The Bank</h2>
                 {isLoading ? (
                     <p className="text-lg text-gray-500">Loading balance...</p>
@@ -105,18 +106,19 @@ const Bank = () => {
                 )}
             </div>
 
-            <div className="bg-white shadow-md rounded-lg p-6 mb-8">
+            {transactionHash && (
+                <Alert className="bg-green-100 border-green-400 text-green-700 mb-4 w-full max-w-xl" role="alert">
+                    <RocketIcon className="w-6 h-6 mr-2" />
+                    <AlertTitle>Information</AlertTitle>
+                    <AlertDescription>
+                        Transaction Hash : {transactionHash}
+                    </AlertDescription>
+                </Alert>
+            )}
+
+            <div className="bg-white shadow-md rounded-lg p-6 mb-8 w-full max-w-xl">
                 <h2 className="text-2xl font-semibold mb-4">Deposit</h2>
                 <div className="flex flex-col space-y-4">
-                    {transactionHash && (
-                        <Alert className="bg-green-100 border-green-400 text-green-700" role="alert">
-                            <RocketIcon className="w-6 h-6 mr-2" />
-                            <AlertTitle>Information</AlertTitle>
-                            <AlertDescription>
-                                Transaction Hash : {transactionHash}
-                            </AlertDescription>
-                        </Alert>
-                    )}
                     <Input
                         placeholder="Amount"
                         type="number"
@@ -134,7 +136,7 @@ const Bank = () => {
                 </div>
             </div>
 
-            <div className="bg-white shadow-md rounded-lg p-6">
+            <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-xl">
                 <h2 className="text-2xl font-semibold mb-4">Withdraw</h2>
                 <div className="flex flex-col space-y-4">
                     <Input
@@ -154,7 +156,7 @@ const Bank = () => {
                 </div>
             </div>
 
-            <div className="bg-white shadow-md rounded-lg p-6 mt-8">
+            <div className="bg-white shadow-md rounded-lg p-6 mt-8 w-full max-w-xl">
                 <h2 className="text-2xl font-semibold mb-4">Transactions</h2>
                 <div className="flex flex-col space-y-4">
                     <div className="flex justify-between items-center">
@@ -167,7 +169,7 @@ const Bank = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     )
 }
 

@@ -15,7 +15,7 @@ export default function Home() {
   const { isConnected } = useAccount();
 
   return (
-    <div className="flex flex-col items-center justify-center w-full max-w-3xl p-6 bg-gray-100 rounded-lg shadow-md mb-16">
+    <div className="flex flex-col items-center w-full max-w-3xl mx-auto p-6  justify-center bg-gray-100 rounded-lg shadow-md mb-16">
       {isConnected ? (
         <Bank />
       ) : (
