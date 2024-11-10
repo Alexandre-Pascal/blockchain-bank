@@ -3,7 +3,7 @@
 import { contractABI, contractAddress } from "@/constants"
 import { useReadContract, useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi"
 import { useEffect, useState } from "react"
-import { parseEther, formatEther } from 'viem'
+import { parseEther, formatEther, parseAbi } from 'viem'
 import { publicClient } from "@/utils/client"
 import { Input } from "../ui/input"
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert"
@@ -15,8 +15,8 @@ const Bank = () => {
     const [amountToDeposit, setAmountToDeposit] = useState(0)
     const [amountToWithdraw, setAmountToWithdraw] = useState(0)
     const [balance, setBalance] = useState(null)
-    const [depositEvent, setDepositEvent] = useState(null)
-    const [withdrawEvent, setWithdrawEvent] = useState(null)
+    const [withdrawEvents, setWithdrawEvents] = useState([])
+    const [depositEvents, setDepositEvents] = useState([])
 
     const { isLoading, isError, error } = useReadContract({
         abi: contractABI,
@@ -57,6 +57,8 @@ const Bank = () => {
     // Effect to update balance whenever address changes or transaction completes
     useEffect(() => {
         fetchBalance()
+        // await getEvents();
+
     }, [transactionHash])
 
 
@@ -69,7 +71,6 @@ const Bank = () => {
                 functionName: 'deposit',
                 value: parseEther(amountToDeposit),
             })
-            setDepositEvent(Date.now())  // Trigger balance update after deposit
         } catch (error) {
             console.error('Error during deposit:', error.message)
         }
@@ -85,15 +86,74 @@ const Bank = () => {
                 functionName: 'withdraw',
                 args: [parseEther(amountToWithdraw)],
             })
-            setWithdrawEvent(Date.now())  // Trigger balance update after withdrawal
         } catch (error) {
             console.error('Error during withdrawal:', error.message)
         }
     }
 
+
+    const getEvents = async () => {
+        console.log('Fetching events...')
+
+        const numberChangedLog = await publicClient.getLogs({
+            address: contractAddress,
+            events: parseAbi([
+                'event Deposit(address indexed from, uint amount)',
+                'event Withdraw(address indexed to, uint amount)'
+            ]),
+            fromBlock: 0n,
+            toBlock: 'latest'
+        })
+
+        console.log('Fetched events:', numberChangedLog)
+
+        // Création de listes temporaires
+        const tempWithdrawEvents = [...withdrawEvents]
+        const tempDepositEvents = [...depositEvents]
+
+        numberChangedLog.forEach(log => {
+            const transactionHash = log.transactionHash
+
+            // Vérification des doublons
+            const isDuplicateWithdraw = tempWithdrawEvents.some(event => event.transactionHash === transactionHash)
+            const isDuplicateDeposit = tempDepositEvents.some(event => event.transactionHash === transactionHash)
+
+            // Ajout de l'événement si ce n'est pas un doublon
+            if (log.eventName === "Deposit" && !isDuplicateDeposit) {
+                tempDepositEvents.push({
+                    type: log.eventName,
+                    address: log.args.from?.toString(),
+                    amount: log.args.amount.toString(),
+                    transactionHash: transactionHash,
+                })
+            } else if (log.eventName === "Withdraw" && !isDuplicateWithdraw) {
+                tempWithdrawEvents.push({
+                    type: log.eventName,
+                    address: log.args.to?.toString(),
+                    amount: log.args.amount.toString(),
+                    transactionHash: transactionHash,
+                })
+            }
+        })
+
+        // Mise à jour de l'état avec les listes filtrées
+        setWithdrawEvents(tempWithdrawEvents)
+        setDepositEvents(tempDepositEvents)
+    }
+
+    // Lorsque l'on a qqn qui est connecté, on fetch les events
+    useEffect(() => {
+        const getAllEvents = async () => {
+            if (address !== 'undefined') {
+                console.log('Fetching events...')
+                await getEvents();
+            }
+        }
+        getAllEvents()
+    }, [address])
     return (
         <>
-            <div className="bg-white shadow-md rounded-lg p-6 mb-8 w-full max-w-xl">
+            <div className="bg-white shadow-md rounded-lg p-6 mb-8 w-full max-w-2xl">
                 <h2 className="text-2xl font-semibold mb-4">Your Balance In The Bank</h2>
                 {isLoading ? (
                     <p className="text-lg text-gray-500">Loading balance...</p>
@@ -107,7 +167,7 @@ const Bank = () => {
             </div>
 
             {transactionHash && (
-                <Alert className="bg-green-100 border-green-400 text-green-700 mb-4 w-full max-w-xl" role="alert">
+                <Alert className="bg-green-100 border-green-400 text-green-700 mb-4 w-full max-w-2xl" role="alert">
                     <RocketIcon className="w-6 h-6 mr-2" />
                     <AlertTitle>Information</AlertTitle>
                     <AlertDescription>
@@ -116,7 +176,7 @@ const Bank = () => {
                 </Alert>
             )}
 
-            <div className="bg-white shadow-md rounded-lg p-6 mb-8 w-full max-w-xl">
+            <div className="bg-white shadow-md rounded-lg p-6 mb-8 w-full max-w-2xl">
                 <h2 className="text-2xl font-semibold mb-4">Deposit</h2>
                 <div className="flex flex-col space-y-4">
                     <Input
@@ -136,7 +196,7 @@ const Bank = () => {
                 </div>
             </div>
 
-            <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-xl">
+            <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-2xl">
                 <h2 className="text-2xl font-semibold mb-4">Withdraw</h2>
                 <div className="flex flex-col space-y-4">
                     <Input
@@ -156,19 +216,31 @@ const Bank = () => {
                 </div>
             </div>
 
-            <div className="bg-white shadow-md rounded-lg p-6 mt-8 w-full max-w-xl">
-                <h2 className="text-2xl font-semibold mb-4">Transactions</h2>
+            <div className="bg-white shadow-md rounded-lg p-6 mt-8 w-full max-w-2xl">
+                <h2 className="text-2xl font-semibold mb-4">Transactions Deposit</h2>
                 <div className="flex flex-col space-y-4">
-                    <div className="flex justify-between items-center">
-                        <p className="text-lg text-gray-700">Deposit</p>
-                        <p className="text-lg text-gray-700">+5 ETH</p>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <p className="text-lg text-gray-700">Withdraw</p>
-                        <p className="text-lg text-gray-700">-2 ETH</p>
-                    </div>
+                    {depositEvents.map((event, index) => (
+                        <div key={index} className="flex justify-between">
+                            <p className="ml-2">From: <span className="font-bold">{event.address}</span></p>
+                            <p className='ml-2 mr-2'>|</p>
+                            <p>Amount : <span className="font-bold">{formatEther(event.amount)} ETH</span></p>
+                        </div>
+                    ))}
                 </div>
-            </div>
+            </div >
+
+            <div className="bg-white shadow-md rounded-lg p-6 mt-8 w-full max-w-2xl">
+                <h2 className="text-2xl font-semibold mb-4">Transactions Withdraw</h2>
+                <div className="flex flex-col space-y-4">
+                    {withdrawEvents.map((event, index) => (
+                        <div key={index} className="flex justify-between">
+                            <p className="ml-2">To: <span className="font-bold">{event.address}</span></p>
+                            <p className='ml-2 mr-2'>|</p>
+                            <p>Amount : <span className="font-bold">{formatEther(event.amount)} ETH</span></p>
+                        </div>
+                    ))}
+                </div>
+            </div >
         </>
     )
 }
