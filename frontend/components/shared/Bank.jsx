@@ -57,7 +57,7 @@ const Bank = () => {
     // Effect to update balance whenever address changes or transaction completes
     useEffect(() => {
         fetchBalance()
-        // await getEvents();
+        getEvents();
 
     }, [transactionHash])
 
