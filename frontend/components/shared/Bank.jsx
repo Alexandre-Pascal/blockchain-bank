@@ -59,7 +59,7 @@ const Bank = () => {
         fetchBalance()
         getEvents();
 
-    }, [transactionHash])
+    }, [transactionHash, isSuccess])
 
 
     // Deposit function
